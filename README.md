@@ -12,6 +12,10 @@ Saiko_Denshin is an Akinator game where a machine tries to determine which perso
 
 		rename "C:\Program Files (x86)\swipl\bin\libswipl.dll" libpl.dll
 
+* install needed python modules :
+
+        pip install -r requirements.txt
+        
 ### Running
 
 ```
