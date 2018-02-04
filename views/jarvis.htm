@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="https://v4-alpha.getbootstrap.com/favicon.ico">
+
+    <title>Jarvis</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+
+
+    <!-- Custom styles for this template -->
+    <link href="/static/css/cover.css" rel="stylesheet">
+    
+    <!-- jarvis css -->  
+    <link rel="stylesheet" type="text/css" href="/static/css/style.css">
+    <script src="/static/js/prefixfree.min.js"></script>
+    
+    <!-- typing -->
+    <script type="text/javascript" src="/static/js/TypingText.js"></script>
+
+    <!-- mycss -->
+    <link rel="stylesheet" type="text/css" href="/static/css/my.css">
+
+    <!-- ajax --> 
+    <script type="text/javascript">
+      var len = 0 ;
+      var nbq = 0 ;
+      //when wefinish ,if person found match the person we thought of
+      var feedback = false;
+      var answers;
+      var inputs = [true,true,true,true,true,true,true,true,true,true];
+      var auto_save = [];
+      var crit = [];
+      var type_crit = [];
+
+      function answer(res) {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) 
+          {
+            document.getElementById("note").innerHTML ="";
+            document.getElementById("note2").innerHTML =`
+            <p>Progress : </p>
+                      <div class="progress-container">
+                        <div id="progress" class="progress" style="width:0%">
+                          <div class="prog-label" id="prog-lab" style="color:#000000;">0%</div>
+                        </div>
+                      </div>`;
+            nbq ++ ;
+            data = this.responseText ;
+            data = JSON.parse(data) ;
+            
+            // the firstime we send len of suspects
+            if (res == "firstime") len = data["suspects"];
+
+            // check if we finished
+            if ("question" in data)
+            {
+              document.getElementById("nbq").innerHTML = " Question "+nbq+" :<br>";
+              document.getElementById("status").innerHTML = "<br>";
+              document.getElementById("question").innerHTML = data["question"] + "<br><br><br><br>";
+
+              percent =parseInt( 100 - (parseInt(data["suspects"]) / len ) * 100 );
+
+              document.getElementById("progress").style.width = percent+"%";
+              document.getElementById("prog-lab").innerHTML = percent + " %";
+              document.getElementById('response').value="";
+
+            }
+            else
+            {
+              document.getElementById("nbq").innerHTML ="Total questions : "+ nbq +"<br>";
+
+              answers = data["answers"];
+
+              if ( data["suspects"].length )
+              {
+                document.getElementById("status").innerHTML = "Are you thinking about :<br>"
+                document.getElementById("question").innerHTML = enhancename(data["suspects"][0]) + '<br><img src="/static/img/'+data["suspects"][0]+'.jpg" width="300" height="200">';
+                document.getElementById("question").style.color = "#2791d9";
+                
+                feedback = true;
+              }
+              else
+              {
+                document.getElementById("status").innerHTML = "Finished .<br>"
+                document.getElementById("question").innerHTML = "Couldn't find a person <br>" ;
+              }
+
+              document.getElementById("progress").style.width = "100%";
+              document.getElementById("prog-lab").innerHTML = "100 %";
+
+              document.getElementById("answer-form").innerHTML = `
+                  <span>
+                      <button class="btn btn-secondary" type="button" style="background: transparent;color:white;" onclick="init_game()">Replay</button>
+                  </span>
+                    <button class="btn btn-secondary" type="button" style="background: transparent;color:white;"onclick="teachme()">Teach Me !</button>`;
+            }
+            
+          }
+          else
+          {
+            document.getElementById("note").innerHTML = `<span><img src="static/img/e.svg"/></span>`;
+          }
+        };
+        xhttp.open("GET", "/response?res="+res, true);
+        xhttp.send();
+      }
+      function init_game()
+      {
+        nbq = 0;
+        len = 0;
+        wkspc = ` <p></p><br>
+                  <p id="typing2">
+                    <div id="nbq" class="status green"></div>
+                    <div id = "notyetset"></div>
+                    <div id="status"></div>
+                    <p id="question"></p>
+                  </p>
+                  <div class="input-group" id="answer-form">
+                    <span class="input-group-btn">
+                      <button class="btn btn-secondary" type="button" style="background: transparent;color:white;"
+                      onclick="answer(document.getElementById('response').value)">Go!</button>
+                    </span>
+                    <select type="text" class="form-control" id="response" 
+                    style="border: 0;border-bottom: 1px solid #ffffff;outline: 0;background: transparent;color:white;">
+                    <option value="" disabled selected>Yes / No</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                    </select>
+                  </div>` ;
+
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) 
+          { 
+            document.getElementById("note").innerHTML = this.responseText ; 
+            document.getElementById("workspace").innerHTML = wkspc ;
+            answer("firstime") ;
+          }
+        };
+        xhttp.open("GET", "/initgame", true);
+        xhttp.send();
+
+      }
+
+      function teachme()
+      {
+        crit = ["name","nationality","age","height","rated_at","fights","wins","wKO","losses","title"];
+        type_crit = ["text","text","number","number","text","number","number","number","number","text"];
+        
+        document.getElementById("workspace").innerHTML ="";
+        document.getElementById("note2").innerHTML ="";
+
+
+        for ( var i=0;i<crit.length;i++)
+        {
+          
+          // if we asked about it then we set a min or max validation
+          if (type_crit[i] == "number")
+          {
+            
+              document.getElementById("workspace").innerHTML += `<input type="number" class="form-control" id="`+crit[i]+`" placeholder="`+crit[i]+`" onblur="verif(this.value,this.id,'n')"
+              style="border: 0;border-bottom: 1px solid #0275d8;outline: 0;background: transparent;color:white;">`;
+            
+          }
+          else
+          {
+            ind = asked_about(crit[i]);
+            if (ind >= 0)
+            {
+              if (answers[ind][2] == "yes")
+              {
+                document.getElementById("sv").innerHTML += crit[i] + " : "+answers[ind][1]+"<br>Saved.<br>";
+                tmp = {};
+                tmp[crit[i]] = answers[ind][1];
+                auto_save.push(tmp);
+              }
+              else
+                document.getElementById("workspace").innerHTML +=
+              `<input type="text" class="form-control" id="`+crit[i]+
+              `" onblur="verif(this.value,this.id,'t')" placeholder="`+crit[i]+`"
+              style="border: 0;border-bottom: 1px solid #0275d8;outline: 0;background: transparent;color:white;">`;
+            }
+            else
+            {
+              document.getElementById("workspace").innerHTML +=
+              `<input type="text" class="form-control" id="`+crit[i]+
+              `" onblur="verif(this.value,this.id,'t')" placeholder="`+crit[i]+`"
+              style="border: 0;border-bottom: 1px solid #0275d8;outline: 0;background: transparent;color:white;">`;
+            }
+          }
+          
+          
+        };
+        document.getElementById("workspace").innerHTML += `<br><button class="btn btn-secondary" type="button" style="background: transparent;color:white;"
+          onclick="validate()">Submit</button>`;
+        
+      }
+
+      function asked_about(crit)
+      {
+        res = -1 ;
+        for ( var i=0;i < answers.length ; i++)
+        {
+          // we want to find the farest
+          if ( answers[i][0] == crit )
+          {
+            res = i;
+          }
+        };
+
+        return res;
+      }
+
+      function min_or_max_fn(ind)
+      {
+        if (answers[ind][1][0] == ">")
+        {
+          if(answers[ind][2] == "yes")
+          {
+            val = parseInt( answers[ind][1].substring(1) );
+            return [ "min" ,val ];
+          }
+          else
+          {
+            val = parseInt( answers[ind][1].substring(1) ) + 1;
+            return [ "max" , val];
+          }
+        }
+        else
+        {
+          if(answers[ind][2] == "yes")
+          {
+            val = parseInt( answers[ind][1].substring(2) ) +1;
+            return [ "max" , val];
+          }
+          else
+          {
+            return [ "min" , parseInt( answers[ind][1].substring(2) )];
+          }
+        }
+      }
+      function verif(val , id , type)
+      {
+        ind = asked_about(id);
+        if (ind >= 0)
+        {
+          if (type == "t")
+          {
+            if (answers[ind][1] == correct_stringr(val) )
+            {
+              inputs[crit.indexOf(id)] = false;
+            }
+            else
+            {
+              inputs[crit.indexOf(id)] = true;
+            }
+          }
+          else
+          {
+            tmp = min_or_max_fn(ind);
+            if (tmp[0] == "min")
+            {
+              if ( parseInt(val) < tmp[1] )
+                inputs[crit.indexOf(id)] = false;
+              else
+                inputs[crit.indexOf(id)] = true;
+            }
+            else
+            {
+              if ( parseInt(val) > tmp[1] )
+                inputs[crit.indexOf(id)] = false;
+              else
+                inputs[crit.indexOf(id)] = true;
+            }
+          }
+        }
+      }
+      function validate()
+      {
+        ind = inputs.indexOf(false) ;
+        if ( ind >= 0)
+        {
+          document.getElementById(crit[ind]).focus();
+          document.getElementById("err").innerHTML = crit[ind] +" : Wrong value";
+          document.getElementById("err").style.color="red";
+        }
+        else
+        {
+          // check all not empty
+          for ( i in crit )
+          {
+            try
+            {
+              if (document.getElementById(crit[i]).value == "")
+              {
+                document.getElementById(crit[i]).focus();
+                document.getElementById("err").innerHTML = crit[i] +" : Empty field ";
+                document.getElementById("err").style.color="red";
+                return;
+              }
+            }
+            catch (e)
+            {
+            }
+          }
+
+          document.getElementById("err").innerHTML ="";
+          document.getElementById("sv").innerHTML ="";
+          document.getElementById("note2").style.color ='#2ecc71';
+          document.getElementById("note2").innerHTML ="Saving new information .<br>Thank you for teaching me !".toUpperCase();
+          
+          res = [];
+          for (var i=0; i < crit.length ; i++ )
+          {
+            // wen crit is auto saved so dosnt have input form
+            try
+            {
+              bx = {};
+              bx[crit[i]] = document.getElementById(crit[i]).value;
+              res.push(bx);
+            }
+            catch (e)
+            {}
+          }
+          for (var i=0; i < auto_save.length ; i++ )
+          {
+            res.push(auto_save[i]);
+          }
+
+          res = correct_typing(res);
+
+          res = tri(res);
+          
+          res = JSON.stringify(res);  
+          
+          var xhttp = new XMLHttpRequest();
+          xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) 
+          { 
+          }
+        };
+        xhttp.open("GET", "/save?boxer="+res, true);
+        xhttp.send();
+        }
+      }
+
+      function correct_typing(res)
+      {
+        //string : espc=_;cara after espc = maj;int = int+num
+        for (var i =0; i < res.length ; i++)
+        {
+          for (var key in res[i])
+          {
+            if ( type_crit[crit.indexOf(key)] == "number")
+            {
+              if (res[i][key] == 0 )
+                res[i][key] = "dead";
+              else
+                res[i][key] = "int" + res[i][key];
+            }
+            else
+            {
+              res[i][key] = correct_string(res[i][key]);
+            }
+          }
+        }
+
+        return res ;
+      }
+
+      function correct_string(s)
+      {
+        s = s.trim();
+        while (true)
+        {
+          i = s.indexOf(" ");
+          if ( i < 0)
+            break;
+          s = s[0].toLowerCase() + s.substring(1,i) + s[i+1].toUpperCase() + s.substr(i+2);
+
+        }
+
+        return s ;
+      }
+
+      function tri (t)
+      {
+        res = [];
+        for (var i = 0 ; i < crit.length ; i++)
+        {
+          res.push( t[find(t,crit[i])] );
+        }
+        
+        return res;
+      }
+      function find(t,c)
+      {
+        for (var i =0 ;i < t.length; i++)
+        {
+          for (var j in t[i])
+          {
+            if ( j == c)
+              return i;
+          }
+        }
+      }
+
+      function enhancename(s)
+      {
+        res = "";
+        tmp = s.split("_") ;
+        for ( i in tmp )
+        {
+          res = res + tmp[i].charAt(0).toUpperCase() + tmp[i].substr(1) + " ";
+        }
+
+        return res;
+      }
+    </script>
+
+  </head>
+
+  <body>
+
+    <div class="site-wrapper">
+      <div class="site-wrapper-inner">
+
+
+        <div class="cover-container">
+
+          <div class="masthead clearfix">
+            <div class="inner">
+              <img src="/static/img/jarvis.png" weight="100" height="50" >
+              <nav class="nav nav-masthead">
+                <a class="nav-link active" href="/">Home</a>
+                <a class="nav-link" href="/about">About</a>
+              </nav>
+            </div>
+          </div>
+
+          <div class="inner cover">
+            <!--<h2 class="cover-heading">Cover your page.</h2>-->
+            <p class="lead">
+              
+              <div class="row">
+                <div class="col-md-6"><br><br>
+                  <div style="float: left;">
+                    <div class="semi_arc e6">
+                      <div class="semi_arc_3 e5_1">
+                        <div class="semi_arc_3 e5_2">
+                          <div class="semi_arc_3 e5_3">
+                            <div class="semi_arc_3 e5_4">
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="core"></div>
+                    </div>
+                    <p></p>
+                    <div id="sv"></div>
+                    <div id="err"></div>
+                    <div id="note2">
+                      
+                    </div>
+                    
+                  </div>
+
+                </div>
+                <div class="col-md-6">
+                  <div id = "note"></div>
+                  <div id="workspace">
+                    
+                    <p></p><br>
+                    <p id="typing">Hi this is Jarvis .<br><br>
+                    I am highly advanced computerized A.I .<br>
+                    But still I need to be tested and teached by users .<br>
+                    To do that,lets play a game !<br><br>
+                    Think about a boxer,and I will try to guess.
+                    Click Start if you're ready !</p>
+
+                      <script type="text/javascript">
+                        // animating text
+                        new TypingText(document.getElementById("typing"),80);
+                        TypingText.runAll(); 
+                      </script>
+
+                    <button class="btn btn-secondary" style="background: transparent;color:white;"
+                    type="button" onclick="init_game()" >Start!</button>
+                     
+                  </div>
+                </div>
+              </div>
+              
+            </p>
+
+            <!--<p class="lead">
+              <a href="#" class="btn btn-lg btn-secondary">Learn more</a>
+            </p>-->
+          </div>
+
+          <div class="mastfoot">
+            <div class="inner">
+              <p>Jarvis Akinator, by <a href="https://github.com/ahmed-BH" target="_blank">@ahmed-BH</a>.</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="/static/js/ie10-viewport-bug-workaround.js"></script>
+  
+
+</body></html>
