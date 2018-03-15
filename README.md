@@ -40,7 +40,3 @@ Scrots
 
 * [Bottle](http://bottlepy.org/docs/dev/) - The micro web-framework used
 * [Pyswip](https://github.com/yuce/pyswip) - SWI-Prolog language interface
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
