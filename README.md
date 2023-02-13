@@ -2,6 +2,14 @@
 
 Saiko_Denshin is an Akinator game where a machine tries to determine which person (a boxer in this case) the player is thinking of by asking a series of questions.
 
+## Running with docker
+
+```shell
+docker run --rm -it -p 8080:8080 ahbenmed/saikodenshin
+```
+
+## Running manually
+
 ### Prerequisites
 
 * Install [python-2.7.13.msi](https://www.python.org/ftp/python/2.7.14/python-2.7.14.amd64.msi)
@@ -16,7 +24,7 @@ Saiko_Denshin is an Akinator game where a machine tries to determine which perso
 
         pip install -r requirements.txt
         
-### Running
+### Runing
 
 ```
 cd Saiko_Denshin/
