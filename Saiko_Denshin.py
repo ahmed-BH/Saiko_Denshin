@@ -293,4 +293,4 @@ def save():
 if __name__ == "__main__" :
     p = Prolog()
     p.consult("../Saiko_Denshin/boxers.pl")
-    run (app=beaker_app,host="localhost",port=8080,debug=True,reloader = True)
+    run (app=beaker_app,host="0.0.0.0",port=8080,debug=True,reloader = True)
